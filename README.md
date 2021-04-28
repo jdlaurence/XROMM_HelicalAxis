@@ -1,5 +1,5 @@
 # XROMM_HelicalAxis
- Scripts to calculate and visualize the instantaneous helical axis of rotation of two rigid bodies.
+ Scripts to calculate (in MATLAB) and visualize (in Maya) the instantaneous helical axis of rotation of two rigid bodies.
  
 [Go to instructions](https://github.com/jdlaurence/XROMM_HelicalAxis/blob/master/instructions.md)
  

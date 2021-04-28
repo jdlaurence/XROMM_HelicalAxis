@@ -1,0 +1,217 @@
+/*
+Import Helical Axis Data
+
+Generates a Helical Axis based on the output of the Matlab Helical Axis script.
+
+  Written by J.D. Laurence-Chasen, with selections modified from Dave Baier's impdata
+  last updated 2020/06/05
+*/
+
+///// Helical Axis UI ///////
+global proc impHAdata()
+{
+	float $mayaVersion = `getApplicationVersionAsFloat` ;
+	
+	if (`window -exists impDataWindow` == true) deleteUI impDataWindow;  
+
+	int $height = 2;
+	int $width = 600;
+  
+	string $mainWindow = `window -title "Import Helical Axis Data" -maximizeButton false -minimizeButton true
+		-sizeable true -resizeToFitChildren false impDataWindow`;
+	columnLayout;
+	text " ";
+	    rowColumnLayout -numberOfColumns 4 -cw 1 ($width*0.25) -cw 2 ($width*0.45) -cw 3 ($width*0.05) -cw 4 ($width*0.2) rcl1;
+	        if ($mayaVersion == 2016){frameLayout  -borderVisible 0 -lv 0 -bgs 0;}
+	        else{frameLayout  -borderVisible 0 -lv 0;}
+	    setParent..;
+	        if ($mayaVersion == 2016){frameLayout  -borderVisible 0 -lv 0 -bgs 0;}
+	        else{frameLayout  -borderVisible 0 -lv 0;}
+	         button -l "Browse to Select File"  -w ($width*0.45) -en 1 -c "setFileName" impFilesButton;	         
+	    setParent..;
+	     	if ($mayaVersion == 2016){frameLayout  -borderVisible 0 -lv 0 -bgs 0;}
+	        else{frameLayout  -borderVisible 0 -lv 0;}
+	    setParent..;
+	        if ($mayaVersion == 2016){frameLayout  -borderVisible 0 -lv 0 -bgs 0;}
+	        else{frameLayout  -borderVisible 0 -lv 0;}
+	        button -l "Clear File"  -w ($width*0.2) -en 1 -c "clearFileName" clearFilesButton;
+	    setParent..;
+	setParent..;
+	textScrollList -allowMultiSelection 0 -w $width -h 25 -nr 3 fileList;
+		text " ";
+	text " ";
+	text -al "center" -label "File must have 7 columns (two xyz endpoints and magnitude) and NO header row" ;
+		text " ";
+	textFieldGrp -label "Axis Name" -text "helical_axis1" -cw 20 ($width/0.5+10) axisname;
+	button	-label "Import Data" -enable 0 -w $width -command "createAxis" impButton;
+	button	-label "Close" -w $width closeButton;
+	button -edit -command "deleteUI impDataWindow" closeButton;
+
+	showWindow $mainWindow;
+	window -e -width $width -height $height $mainWindow;
+}
+		
+				
+global proc setFileName()
+{
+	// File selection
+	// updated 5/11/16 to multifile
+	// clear file list
+	//textScrollList -e -ra fileList;
+	// multifile import
+	string $pointfiles[] = 	getXrommPointfiles("import", 4, "CSV files (*.csv)",1);
+	//if files are chosen, enable buttons
+	if (size($pointfiles)>0)
+	{
+        for ($p in $pointfiles){textScrollList -e -append $p fileList;}
+    
+        button -edit -enable 1 impButton;
+
+    }
+    else
+    {
+        print "No file(s) chosen";
+    } 
+        
+}
+
+global proc clearFileName()
+{
+	textScrollList -e -ra fileList;
+}
+
+
+global proc createAxis()
+{
+    
+    
+    ////// Create Axis Objects /////
+    
+    string $axname = `textFieldGrp -q -text axisname`;
+    string $p1name = ($axname + "_point1"); // point 1 is in the position direction
+    string $p2name = ($axname + "_point2");
+    string $cylname = ($axname + "_cylinder");
+    string $conename = ($axname + "_cone");
+	string $pointfiles[] = 	`textScrollList -q -ai fileList`;
+    
+    // shader
+    string $shaderName = ($axname + "_shader");
+		   
+		   if(!`objExists $shaderName`)
+		   {
+    		   string $myBlinn = `shadingNode -asShader blinn -n $shaderName`;
+    		   sets -renderable true -noSurfaceShader true -empty -name ($shaderName + "SG");
+               connectAttr -f ($shaderName + ".outColor") ($shaderName + "SG.surfaceShader");
+    	    }
+    
+    // objects and relationships
+    polyCylinder -r 0.05 -h 10 -n $cylname;
+    hyperShade -assign $shaderName;
+    polyCone -r 0.3 -h 4 -n $conename;
+    hyperShade -assign $shaderName;
+    setAttr ($shaderName + ".color") -type double3 1 1 0;
+	spaceLocator -p 0 0 0 -n $p1name;
+	spaceLocator -p 0 0 0 -n $p2name;
+    group -em -n $axname;
+    group -em -n ($axname + "obj");
+    parent ($axname + "obj") $axname;
+    parent $p1name $axname;
+    parent $p2name $axname;
+    parent $cylname ($axname + "obj");
+    parent $conename ($axname + "obj");
+    hide $p1name $p2name;
+    
+    // Constrain axis to endpoints
+    pointConstraint $p1name $p2name $conename;
+    pointConstraint $p1name $p2name $cylname;
+    aimConstraint -offset 0 0 -90 $p1name $conename;
+    aimConstraint -offset 0 0 -90 $p1name $cylname;
+    
+    ///// Animate the endpoints /////
+    
+    // this should just be one file- a holdover from impdata
+	for ($pointfile in $pointfiles)
+	{
+	    // point to the current file and get its index
+	    textScrollList -e -si $pointfile fileList;
+	    refresh -f;
+
+        // if the file exists, read it in
+	    if (`filetest -s $pointfile`)
+        {
+            string $impdata[] = `fileread($pointfile)`;
+            // if the last row is blank (carriage return issue) then get rid of it
+            int $maxIndex = (size($impdata))-1;
+            
+            if (size($impdata[$maxIndex]) == 0)
+                {stringArrayRemoveAtIndex($maxIndex, $impdata);}           
+            
+        	// get the frame list
+        	float $frames[]; 
+    		for ($i = 0;$i<size($impdata);$i++)
+    			{$frames[size($frames)] = ($i+1);}
+    	    
+    	    float $frame; 
+            int $frIdx = 0;
+            string $data[];
+    		float $scaleoffset = 0.5;
+    		
+    		progressWindow -title "Importing Axis Data" -min ($frames[0]) -max ($frames[0]+size($frames))
+    			 -progress ($frames[0]) -status ("Processing frame: " + ($frames[0])) -isInterruptable true;
+    			 
+    		for ($row in $impdata)
+		    {
+        	    float $p1x; float $p1y; float $p1z;
+        	    float $p2x; float $p2y; float $p2z;
+        	    float $axscale;
+        	    
+        	    // get the row of data
+        		$frame = $frames[$frIdx];
+        	    currentTime -update 1 -edit $frame;
+        		tokenizeList($row,$data);
+                
+                $p1x = $data[0]; $p1y = $data[1]; $p1z = $data[2];
+                $p2x = $data[3]; $p2y = $data[4]; $p2z = $data[5];
+				string $tempscale = $data[6];
+			    // Animate
+				if ($data[0] != "NaN")
+				{   
+				    $axscale = $tempscale;
+				    $axscale = $axscale + $scaleoffset;
+				    xform -translation $p1x $p1y $p1z $p1name;
+                    xform -translation $p2x $p2y $p2z $p2name;
+                    scale $axscale $axscale $axscale $conename;
+                    setKeyframe ($conename + ".scale");
+                    setKeyframe ($p1name + ".translate"); 
+                    setKeyframe ($p2name + ".translate");
+                     
+                     // animate visibility
+                    showHidden $conename $cylname;
+    				setKeyframe ($cylname + ".visibility");
+    				setKeyframe ($conename + ".visibility");
+    				}
+				else // hide axis if below threshold or no data
+				{        
+				    hide $conename $cylname;
+				    setKeyframe ($cylname + ".visibility");
+    				setKeyframe ($conename + ".visibility");    
+				    }
+	            $frIdx = $frIdx+1;
+	            
+            	if ( `progressWindow -query -isCancelled` ) 
+		            {break;}
+		        progressWindow -edit -progress $frames[$frIdx] -status ("Processing frame: " + $frames[$frIdx]);
+		    }
+	
+	        progressWindow -endProgress;	
+        	//adjust the time slider
+			playbackOptions -max ($frames[size($frames)-1]);
+
+	    }
+        else
+        {
+            print "file/path name is invalid";
+        }
+    }
+    select -clear;
+}

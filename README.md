@@ -1,7 +1,7 @@
 # XROMM_HelicalAxis
  Scripts to calculate and visualize the instantaneous helical axis of rotation of two rigid bodies.
  
- Go to instructions
+[Go to instructions](https://github.com/jdlaurence/XROMM_HelicalAxis/blob/master/instructions.md)
  
 Pipeline written by J.D. Laurence-Chasen. Axis calculation based on code by Christoph Reinschmidt.
  

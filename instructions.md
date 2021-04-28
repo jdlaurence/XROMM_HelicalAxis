@@ -7,7 +7,7 @@ This workflow requires a series of MATLAB scripts and one Maya (MEL) script. Dow
 
 ## Step 2: Open, edit, and run MATLAB Script [CalculateHelicalAxes.m](/scripts/CalculateHelicalAxes.m)
 
-This is the master script that will walk you through the calculation and file save.
+This is the master script that will walk you through the calculation and file save. You should edit the 'User Input' section of the script. (A GUI-based version is in the works).
 It will ask you to point to 'rbtReference' and 'rbtBone' files. These are the rigid body transformations (from XMALab), of a proximal (reference) and distal (bone) of your two bones of interest. There are other parameters you can adjust (timestep, etc).
 
 The script will save two files in your working directory: HAdataRaw, and HAdataMaya.

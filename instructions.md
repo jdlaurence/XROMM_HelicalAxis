@@ -14,7 +14,7 @@ The script will save two files in your working directory: HAdataRaw, and HAdataM
 
 HAdataRaw contains technical descriptive information about the axis, like the unit vector, rotation angle, and translation.
 
-HADataMaya contains the data required to import and visualize the axis in Maya.
+HAdataMaya contains the data required to import and visualize the axis in Maya.
 
 
 ## Step 3: Import helical axis into Maya.

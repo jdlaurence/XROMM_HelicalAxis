@@ -5,7 +5,7 @@
 This workflow requires a series of MATLAB scripts and one Maya (MEL) script. Download the scripts (or clone this repository), and ensure they are added to the respective programs' working directories.
 
 
-## Step 2: Open, edit, and run MATALB Script [CalculateHelicalAxis.m](/functions/CalculateHelicalAxis.m)
+## Step 2: Open, edit, and run MATALB Script [CalculateHelicalAxes.m](/functions/CalculateHelicalAxes.m)
 
 This is the master script that will walk you through the calculation and file save.
 It will ask you to point to 'rbtReference' and 'rbtBone' files. These are the raw rigid body transformations (from XMALab), of a proximal (reference) and distal (bone) of your two bones of interest. There are other parameters you can adjust (timestep, etc).

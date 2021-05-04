@@ -1,4 +1,4 @@
-function [HAdataMaya, HAdataRaw] = calcHAforMaya(rbtRef,rbtBone,timestep,threshold,HAlen,axisCentroid)
+function [HAdataMaya, HAdataRaw,axisCentroid_cube] = calcHAforMaya(rbtRef,rbtBone,timestep,threshold,HAlen,axisCentroid)
 %CALCULATE HELICAL AXIS FOR MAYA This function takes XMALab rigid body
 %transformation files and calculates a helical axis, ready to be imported
 %in to Autodesk maya for visualization.
@@ -96,7 +96,7 @@ scale(frames) = HAdata(frames,7)./max(HAdata(frames,7)); % normalized scale
 pos1 = applyTm(temppos1,rbtBone);
 pos2 = applyTm(temppos2,rbtBone);
 HAendpoints = [pos1 pos2 scale];
-
+axisCentroid_cube = applyTm(newpos,rbtBone);
 % remove below threshold points
 HAendpoints(belowThreshold,1:6) = nan;
 HAendpoints(belowThreshold,7) = 0.5;
